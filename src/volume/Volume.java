@@ -67,6 +67,23 @@ public class Volume {
     
     // -------------------------------------------------------------------------
     
+    public short getVoxelNearest(double[] coord) {
+        
+        // Check for coords outside dimensions
+        if (coord[0] < 0 || coord[0] > (dimX-1) || 
+            coord[1] < 0 || coord[1] > (dimY-1) || 
+            coord[2] < 0 || coord[2] > (dimZ-1) ){
+            return 0;
+        }
+        
+        // Find nearest voxel
+        int x = (int) Math.round(coord[0]);
+        int y = (int) Math.round(coord[1]);
+        int z = (int) Math.round(coord[2]);
+        
+        return getVoxel(x, y, z);
+    }
+    
     public short getVoxelInterpolate(double[] coord) {
         
         // Check for coords outside dimensions
