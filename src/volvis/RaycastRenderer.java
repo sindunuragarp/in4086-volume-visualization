@@ -266,7 +266,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         int color=0;
         color = (((int) ((255 * intensity)/volume.getMaximum())) << 24) | (255 << 16) | (255 << 8);
         
-        return color;
+        return color; 
     }
    
     
