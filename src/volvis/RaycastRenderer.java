@@ -243,10 +243,28 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         /* to be implemented:  You need to sample the ray and implement the MIP
          * right now it just returns yellow as a color
         */
+        
+        // get ray length
+        double xDist = exitPoint[0] - entryPoint[0];
+        double yDist = exitPoint[1] - entryPoint[1];
+        double zDist = exitPoint[2] - entryPoint[2];
+        
+        double rayLength = Math.sqrt(xDist*xDist+yDist*yDist+zDist*zDist);
+        int totalSteps = (int) Math.floor(rayLength/sampleStep);
+        
+        // find maximum intensity along all voxels in the ray from viewvector
+        short intensity = 0;
+        for (int i=0; i<totalSteps; i++){
+            double[] voxelCoord = new double[3];
+            voxelCoord[0] = (double) (entryPoint[0] - (i * sampleStep * viewVec[0]));
+            voxelCoord[1] = (double) (entryPoint[1] - (i * sampleStep * viewVec[1]));
+            voxelCoord[2] = (double) (entryPoint[2] - (i * sampleStep * viewVec[2]));
+            
+            intensity = (short) Math.max(volume.getVoxelInterpolate(voxelCoord), intensity);
+        }
          
         int color=0;
-
-        color = (255 << 24) | (255 << 16) | (255 << 8); 
+        color = (((int) ((255 * intensity)/volume.getMaximum())) << 24) | (255 << 16) | (255 << 8);
         
         return color;
     }
