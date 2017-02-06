@@ -77,9 +77,9 @@ public class Volume {
         }
         
         // Get i and t for all axis
-        int x = (int) Math.round(coord[0]);
-        int y = (int) Math.round(coord[1]);
-        int z = (int) Math.round(coord[2]);
+        int x = (int) Math.floor(coord[0]);
+        int y = (int) Math.floor(coord[1]);
+        int z = (int) Math.floor(coord[2]);
         
         double dx = coord[0] - x;
         double dy = coord[1] - y;
@@ -122,7 +122,7 @@ public class Volume {
     }
     
     private short calcAverageVoxel(short v0, short v1, double dv) {
-        return (short) Math.round((1-dv) * v0 + dv * v1);
+        return (short) Math.round((1.0-dv)*v0 + dv*v1);
     }
     
     // -------------------------------------------------------------------------
