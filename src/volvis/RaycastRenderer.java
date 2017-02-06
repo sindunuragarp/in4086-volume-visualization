@@ -48,9 +48,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
     // -------------------------------------------------------------------------
 
     void raycast(double[] viewMatrix) {
-        /* To be partially implemented:
-            This function traces the rays through the volume. Have a look and check that you understand how it works.
-            You need to introduce here the different modalities MIP/Compositing/TF2/ etc...*/
 
         // get direction vectors
         double[] viewVec = new double[3];
@@ -59,14 +56,8 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         VectorMath.setVector(viewVec, viewMatrix[2], viewMatrix[6], viewMatrix[10]);
         VectorMath.setVector(uVec, viewMatrix[0], viewMatrix[4], viewMatrix[8]);
         VectorMath.setVector(vVec, viewMatrix[1], viewMatrix[5], viewMatrix[9]);
-
-        // init vars
-        int imageCenter = image.getWidth() / 2;
-
-        double[] pixelCoord = new double[3];
-        double[] entryPoint = new double[3];
-        double[] exitPoint = new double[3];
         
+        // init vars
         int increment=1;
         float sampleStep=0.2f;
         
@@ -80,69 +71,78 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         // raycast loop
         for (int j = 0; j < image.getHeight(); j += increment) {
             for (int i = 0; i < image.getWidth(); i += increment) {
-                
-                // start -------------------------------------------------------
-                
-                // compute starting points of rays in a plane shifted backwards to a position behind the data set
-                pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter) - viewVec[0] * imageCenter + volume.getDimX() / 2.0;
-                pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter) - viewVec[1] * imageCenter + volume.getDimY() / 2.0;
-                pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter) - viewVec[2] * imageCenter + volume.getDimZ() / 2.0;
-
-                computeEntryAndExit(pixelCoord, viewVec, entryPoint, exitPoint);
-                if ((entryPoint[0] > -1.0) && (exitPoint[0] > -1.0)) {
-                    //System.out.println("Entry: " + entryPoint[0] + " " + entryPoint[1] + " " + entryPoint[2]);
-                    //System.out.println("Exit: " + exitPoint[0] + " " + exitPoint[1] + " " + exitPoint[2]);
-                    int pixelColor = 0;
-                                   
-                    if(mipMode) {
-                        pixelColor = traceRayMIP(entryPoint,exitPoint,viewVec,sampleStep);
-                    }
-                    
-                    if(compositingMode) {
-                        pixelColor = traceRayComposting(entryPoint,exitPoint,viewVec,sampleStep);
-                    }
-                        
-                    for (int ii = i; ii < i + increment; ii++) {
-                        for (int jj = j; jj < j + increment; jj++) {
-                            image.setRGB(ii, jj, pixelColor);
-                        }
-                    }
-                }
-                
-                // end ---------------------------------------------------------
+                calcColor(i, j, viewVec, uVec, vVec, sampleStep, increment);
             }
         }
         
     }
     
-    int traceRayMIP(double[] entryPoint, double[] exitPoint, double[] viewVec, double sampleStep) {
+    void calcColor(int i, int j, double[] viewVec, double[] uVec, double[] vVec, float sampleStep, int increment) {
+        
+        // init vars
+        int imageCenter = image.getWidth() / 2;
+        double[] pixelCoord = new double[3];
+        double[] entryPoint = new double[3];
+        double[] exitPoint = new double[3];
+        
+        // compute starting points of rays in a plane shifted backwards to a position behind the data set
+        pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter) - viewVec[0] * imageCenter + volume.getDimX() / 2.0;
+        pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter) - viewVec[1] * imageCenter + volume.getDimY() / 2.0;
+        pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter) - viewVec[2] * imageCenter + volume.getDimZ() / 2.0;
+
+        computeEntryAndExit(pixelCoord, viewVec, entryPoint, exitPoint);
+        if ((entryPoint[0] > -1.0) && (exitPoint[0] > -1.0)) {
+            
+            int pixelColor = 0;
+
+            if(mipMode) pixelColor = traceRayMIP(entryPoint,exitPoint,viewVec,sampleStep);
+            else if(compositingMode) pixelColor = traceRayComposting(entryPoint,exitPoint,viewVec,sampleStep);
+
+            for (int ii = i; ii < i + increment; ii++) {
+                for (int jj = j; jj < j + increment; jj++) {
+                    image.setRGB(ii, jj, pixelColor);
+                }
+            }
+        }
+    }
+    
+    private int traceRayMIP(double[] entryPoint, double[] exitPoint, double[] viewVec, double sampleStep) {
         
         // get ray length
         double xDist = exitPoint[0] - entryPoint[0];
         double yDist = exitPoint[1] - entryPoint[1];
         double zDist = exitPoint[2] - entryPoint[2];
         
-        double rayLength = Math.sqrt(xDist*xDist+yDist*yDist+zDist*zDist);
+        double rayLength = Math.sqrt(xDist*xDist + yDist*yDist + zDist*zDist);
         int totalSteps = (int) Math.floor(rayLength/sampleStep);
         
         // find maximum intensity along all voxels in the ray from viewvector
-        short intensity = 0;
+        short voxelMax = 0;
         for (int i=0; i<totalSteps; i++){
-            double[] voxelCoord = new double[3];
-            voxelCoord[0] = (double) (entryPoint[0] - (i * sampleStep * viewVec[0]));
-            voxelCoord[1] = (double) (entryPoint[1] - (i * sampleStep * viewVec[1]));
-            voxelCoord[2] = (double) (entryPoint[2] - (i * sampleStep * viewVec[2]));
+            double[] coord = new double[3];
+            coord[0] = (double) (entryPoint[0] - (i * sampleStep * viewVec[0]));
+            coord[1] = (double) (entryPoint[1] - (i * sampleStep * viewVec[1]));
+            coord[2] = (double) (entryPoint[2] - (i * sampleStep * viewVec[2]));
             
-            intensity = (short) Math.max(volume.getVoxelInterpolate(voxelCoord), intensity);
+            short voxelNow = volume.getVoxelInterpolate(coord);
+            voxelMax = (short) Math.max(voxelNow, voxelMax);
         }
-         
-        int color = 0;
-        color = (((int) ((255 * intensity)/volume.getMaximum())) << 24) | (255 << 16) | (255 << 8);
+        
+        int red = (int)(255 * voxelMax / volume.getMaximum());
+        int color = (red << 24) | (255 << 16) | (255 << 8);
         
         return color; 
     }
     
-    int traceRayComposting(double[] entryPoint, double[] exitPoint, double[] viewVec, double sampleStep) {
+    private int traceRayComposting(double[] entryPoint, double[] exitPoint, double[] viewVec, double sampleStep) {
+        
+        // get ray length
+        double xDist = exitPoint[0] - entryPoint[0];
+        double yDist = exitPoint[1] - entryPoint[1];
+        double zDist = exitPoint[2] - entryPoint[2];
+        
+        double rayLength = Math.sqrt(xDist*xDist + yDist*yDist + zDist*zDist);
+        int totalSteps = (int) Math.floor(rayLength/sampleStep);
         
         int color=0;
         color = (255 << 24) | (255 << 16) | (255 << 8); 
