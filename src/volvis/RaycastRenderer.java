@@ -17,6 +17,10 @@ import util.VectorMath;
 import volume.GradientVolume;
 import volume.Volume;
 import volume.VoxelGradient;
+import java.lang.Thread;
+import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -58,7 +62,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         VectorMath.setVector(vVec, viewMatrix[1], viewMatrix[5], viewMatrix[9]);
         
         // init vars
-        int increment=1;
+        int increment=2;
         float sampleStep=0.2f;
         
         // clear image
@@ -69,84 +73,118 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         }
 
         // raycast loop
+        ArrayList<Thread> threads = new ArrayList();
         for (int j = 0; j < image.getHeight(); j += increment) {
             for (int i = 0; i < image.getWidth(); i += increment) {
-                calcColor(i, j, viewVec, uVec, vVec, sampleStep, increment);
+                Thread newThread = new RunCalculation(i, j, viewVec, uVec, vVec, sampleStep, increment);
+                newThread.run();
+                threads.add(newThread);
             }
         }
         
+        for (Thread thread : threads) {
+            try { thread.join(); } 
+            catch (InterruptedException ex) {}
+        }
     }
     
-    void calcColor(int i, int j, double[] viewVec, double[] uVec, double[] vVec, float sampleStep, int increment) {
+    private class RunCalculation extends Thread {
         
-        // init vars
-        int imageCenter = image.getWidth() / 2;
-        double[] pixelCoord = new double[3];
-        double[] entryPoint = new double[3];
-        double[] exitPoint = new double[3];
+        private int i;
+        private int j;
         
-        // compute starting points of rays in a plane shifted backwards to a position behind the data set
-        pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter) - viewVec[0] * imageCenter + volume.getDimX() / 2.0;
-        pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter) - viewVec[1] * imageCenter + volume.getDimY() / 2.0;
-        pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter) - viewVec[2] * imageCenter + volume.getDimZ() / 2.0;
+        private double[] viewVec;
+        private double[] uVec;
+        private double[] vVec;
+        
+        float sampleStep;
+        int increment;
+        
+        RunCalculation(int i, int j, double[] viewVec, double[] uVec, double[] vVec, float sampleStep, int increment) {
+            this.i = i;
+            this.j = j;
+            this.viewVec = viewVec;
+            this.uVec = uVec;
+            this.vVec = vVec;
+            this.sampleStep = sampleStep;
+            this.increment = increment;
+        }
 
-        computeEntryAndExit(pixelCoord, viewVec, entryPoint, exitPoint);
-        if ((entryPoint[0] > -1.0) && (exitPoint[0] > -1.0)) {
+        @Override
+        public void run() {
             
-            int pixelColor = 0;
+            // init vars
+            int imageCenter = image.getWidth() / 2;
+            double[] pixelCoord = new double[3];
+            double[] entryPoint = new double[3];
+            double[] exitPoint = new double[3];
 
-            if(mipMode) pixelColor = traceRayMIP(entryPoint,exitPoint,viewVec,sampleStep);
-            else if(compositingMode) pixelColor = traceRayComposting(entryPoint,exitPoint,viewVec,sampleStep);
+            // compute starting points of rays in a plane shifted backwards to a position behind the data set
+            pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter) - viewVec[0] * imageCenter + volume.getDimX() / 2.0;
+            pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter) - viewVec[1] * imageCenter + volume.getDimY() / 2.0;
+            pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter) - viewVec[2] * imageCenter + volume.getDimZ() / 2.0;
 
-            for (int ii = i; ii < i + increment; ii++) {
-                for (int jj = j; jj < j + increment; jj++) {
-                    image.setRGB(ii, jj, pixelColor);
+            computeEntryAndExit(pixelCoord, viewVec, entryPoint, exitPoint);
+            if ((entryPoint[0] > -1.0) && (exitPoint[0] > -1.0)) {
+
+                int pixelColor = 0;
+
+                if(mipMode) pixelColor = traceRayMIP(entryPoint,exitPoint);
+                else if(compositingMode) pixelColor = traceRayComposting(entryPoint,exitPoint);
+
+                for (int ii = i; ii < i + increment; ii++) {
+                    for (int jj = j; jj < j + increment; jj++) {
+                        image.setRGB(ii, jj, pixelColor);
+                    }
                 }
             }
         }
-    }
-    
-    private int traceRayMIP(double[] entryPoint, double[] exitPoint, double[] viewVec, double sampleStep) {
         
-        // get ray length
-        double xDist = exitPoint[0] - entryPoint[0];
-        double yDist = exitPoint[1] - entryPoint[1];
-        double zDist = exitPoint[2] - entryPoint[2];
-        
-        double rayLength = Math.sqrt(xDist*xDist + yDist*yDist + zDist*zDist);
-        int totalSteps = (int) Math.floor(rayLength/sampleStep);
-        
-        // find maximum intensity along all voxels in the ray from viewvector
-        short voxelMax = 0;
-        for (int i=0; i<totalSteps; i++){
-            double[] coord = new double[3];
-            coord[0] = (double) (entryPoint[0] - (i * sampleStep * viewVec[0]));
-            coord[1] = (double) (entryPoint[1] - (i * sampleStep * viewVec[1]));
-            coord[2] = (double) (entryPoint[2] - (i * sampleStep * viewVec[2]));
-            
-            short voxelNow = volume.getVoxelInterpolate(coord);
-            voxelMax = (short) Math.max(voxelNow, voxelMax);
+        private int traceRayMIP(double[] entryPoint, double[] exitPoint) {
+
+            // get ray length
+            double xDist = exitPoint[0] - entryPoint[0];
+            double yDist = exitPoint[1] - entryPoint[1];
+            double zDist = exitPoint[2] - entryPoint[2];
+
+            double rayLength = Math.sqrt(xDist*xDist + yDist*yDist + zDist*zDist);
+            int totalSteps = (int) Math.floor(rayLength/sampleStep);
+
+            // find maximum intensity along all voxels in the ray from viewvector
+            short voxelMax = 0;
+            for (int i=0; i<totalSteps; i++){
+                double[] coord = new double[3];
+                coord[0] = (double) (entryPoint[0] - (i * sampleStep * viewVec[0]));
+                coord[1] = (double) (entryPoint[1] - (i * sampleStep * viewVec[1]));
+                coord[2] = (double) (entryPoint[2] - (i * sampleStep * viewVec[2]));
+
+                short voxelNow = volume.getVoxelInterpolate(coord);
+                voxelMax = (short) Math.max(voxelNow, voxelMax);
+            }
+
+            int red = (int)(255 * voxelMax / volume.getMaximum());
+            int color = (red << 24) | (255 << 16) | (255 << 8);
+
+            return color; 
         }
-        
-        int red = (int)(255 * voxelMax / volume.getMaximum());
-        int color = (red << 24) | (255 << 16) | (255 << 8);
-        
-        return color; 
-    }
-    
-    private int traceRayComposting(double[] entryPoint, double[] exitPoint, double[] viewVec, double sampleStep) {
-        
-        // get ray length
-        double xDist = exitPoint[0] - entryPoint[0];
-        double yDist = exitPoint[1] - entryPoint[1];
-        double zDist = exitPoint[2] - entryPoint[2];
-        
-        double rayLength = Math.sqrt(xDist*xDist + yDist*yDist + zDist*zDist);
-        int totalSteps = (int) Math.floor(rayLength/sampleStep);
-        
-        int color=0;
-        color = (255 << 24) | (255 << 16) | (255 << 8); 
-        return color;
+
+        private int traceRayComposting(double[] entryPoint, double[] exitPoint) {
+
+            // get ray length
+            double xDist = exitPoint[0] - entryPoint[0];
+            double yDist = exitPoint[1] - entryPoint[1];
+            double zDist = exitPoint[2] - entryPoint[2];
+
+            double rayLength = Math.sqrt(xDist*xDist + yDist*yDist + zDist*zDist);
+            int totalSteps = (int) Math.floor(rayLength/sampleStep);
+            
+            // calculate composting
+            /*TODO*/
+
+            int color=0;
+            color = (255 << 24) | (255 << 16) | (255 << 8); 
+            return color;
+        }
     }
     
     // -------------------------------------------------------------------------
