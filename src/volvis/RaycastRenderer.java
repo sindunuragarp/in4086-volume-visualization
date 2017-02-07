@@ -59,7 +59,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         
         if(this.interactiveMode) {
             increment = (int) Math.floor(image.getWidth()/100);
-            System.out.println(increment);
             sampleStep = 1.0f;
         }
         
@@ -198,14 +197,19 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             double rayLength = Math.sqrt(xDist*xDist + yDist*yDist + zDist*zDist);
             int totalSteps = (int) Math.floor(rayLength/sampleStep);
             
-            // calculate composting
-            int accumulatedColor = (int)(255 * traceRayCompositing(0, totalSteps) / maxIntensity);
+            // run compositing
+            TFColor voxelColor = traceRayCompositing(0, totalSteps, new TFColor());
             
-            int color = (accumulatedColor << 24) | (255 << 16) | (255 << 8); 
+            int alpha = (1 - voxelColor.a) <= 1.0 ? (int) Math.floor((1 - voxelColor.a) * 255) : 255;
+            int red = voxelColor.r <= 1.0 ? (int) Math.floor(voxelColor.r * 255) : 255;
+            int green = voxelColor.g <= 1.0 ? (int) Math.floor(voxelColor.g * 255) : 255;
+            int blue = voxelColor.b <= 1.0 ? (int) Math.floor(voxelColor.b * 255) : 255;
+
+            int color = (alpha << 24) | (red << 16) | (green << 8) | blue;
             return color;
         }
         
-        private int traceRayCompositing(int i, int totalSteps){
+        private TFColor traceRayCompositing(int i, int totalSteps, TFColor prevColor){
             double[] coord = new double[3];
             double step = sampleStep*i;
 
@@ -214,12 +218,20 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             coord[2] = entryPoint[2] - (step * viewVec[2]);
 
             short voxel = volume.getVoxelNearest(coord);
-            double opacity = ((voxel*100) / maxIntensity);
+            TFColor voxelColor = tFunc.getColor(voxel);
+            TFColor nextColor = new TFColor();
             
-            if (i < totalSteps){          
-                return (int) (voxel + (((1-(opacity/100))) * traceRayCompositing(i + 1, totalSteps)));
+            nextColor.r = voxelColor.a * voxelColor.r + (1 - voxelColor.a) * prevColor.r;
+            nextColor.g = voxelColor.a * voxelColor.g + (1 - voxelColor.a) * prevColor.g;
+            nextColor.b = voxelColor.a * voxelColor.b + (1 - voxelColor.a) * prevColor.b;
+
+            nextColor.a = (1 - voxelColor.a) * prevColor.a;
+            prevColor = nextColor;
+            
+            if (i < totalSteps){
+                return traceRayCompositing(i+1, totalSteps, prevColor);
             } else {
-                return voxel;
+                return prevColor;
             }
         }
     }
