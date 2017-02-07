@@ -190,7 +190,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         }
 
         private int traceRayCompositing(double[] entryPoint, double[] exitPoint) {
-
             // get ray length
             double xDist = exitPoint[0] - entryPoint[0];
             double yDist = exitPoint[1] - entryPoint[1];
@@ -200,11 +199,28 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             int totalSteps = (int) Math.floor(rayLength/sampleStep);
             
             // calculate composting
-            /*TODO*/
-
-            int color=0;
-            color = (255 << 24) | (255 << 16) | (255 << 8); 
+            int accumulatedColor = (int)(255 * traceRayCompositing(0, totalSteps) / maxIntensity);
+            
+            int color = (accumulatedColor << 24) | (255 << 16) | (255 << 8); 
             return color;
+        }
+        
+        private int traceRayCompositing(int i, int totalSteps){
+            double[] coord = new double[3];
+            double step = sampleStep*i;
+
+            coord[0] = entryPoint[0] - (step * viewVec[0]);
+            coord[1] = entryPoint[1] - (step * viewVec[1]);
+            coord[2] = entryPoint[2] - (step * viewVec[2]);
+
+            short voxel = volume.getVoxelNearest(coord);
+            double opacity = ((voxel*100) / maxIntensity);
+            
+            if (i < totalSteps){          
+                return (int) (voxel + (((1-(opacity/100))) * traceRayCompositing(i + 1, totalSteps)));
+            } else {
+                return voxel;
+            }
         }
     }
     
