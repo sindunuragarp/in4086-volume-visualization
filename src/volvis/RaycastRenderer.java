@@ -54,12 +54,13 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
     void raycast(double[] viewMatrix) {
         
         // rendering vars
-        int increment=1;
-        float sampleStep=0.2f;
+        int increment = 1;
+        float sampleStep = 0.2f;
         
         if(this.interactiveMode) {
-            slicer(viewMatrix);
-            return;
+            increment = (int) Math.floor(image.getWidth()/100);
+            System.out.println(increment);
+            sampleStep = 1.0f;
         }
         
         // vector uVec and vVec define a plane through the origin, perpendicular to the view vector viewVec
@@ -72,13 +73,14 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         
         // init vars
         int imageCenter = image.getWidth() / 2;
+        short maxIntensity = volume.getMaximum();
         double[] pixelCoord = new double[3];
         double[] entryPoint = new double[3];
         double[] exitPoint = new double[3];
         
         // clear image
-        for (int j = 0; j < image.getHeight(); j++) {
-            for (int i = 0; i < image.getWidth(); i++) {
+        for (int i = 0; i < image.getWidth(); i++) {
+            for (int j = 0; j < image.getHeight(); j++) {
                 image.setRGB(i, j, 0);
             }
         }
@@ -95,7 +97,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
                 computeEntryAndExit(pixelCoord, viewVec, entryPoint, exitPoint);
                 if ((entryPoint[0] > -1.0) && (exitPoint[0] > -1.0)) {
-                    Thread newThread = new RunCalculation(i, j, viewVec, entryPoint, exitPoint, sampleStep, increment);
+                    Thread newThread = new RunCalculation(i, j, viewVec, entryPoint, exitPoint, sampleStep, increment, maxIntensity);
                     newThread.run();
                     threads.add(newThread);
                 }
@@ -119,8 +121,9 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         
         float sampleStep;
         int increment;
+        short maxIntensity;
         
-        RunCalculation(int i, int j, double[] viewVec, double[] entryPoint, double[] exitPoint, float sampleStep, int increment) {
+        RunCalculation(int i, int j, double[] viewVec, double[] entryPoint, double[] exitPoint, float sampleStep, int increment, short maxIntensity) {
             this.i = i;
             this.j = j;
             this.viewVec = viewVec;
@@ -128,6 +131,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             this.exitPoint = exitPoint;
             this.sampleStep = sampleStep;
             this.increment = increment;
+            this.maxIntensity = maxIntensity;
         }
 
         @Override
@@ -138,8 +142,18 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             if(mipMode) pixelColor = traceRayMIP(entryPoint,exitPoint);
             else if(compositingMode) pixelColor = traceRayCompositing(entryPoint,exitPoint);
 
-            for (int ii = i; ii < i + increment; ii++) {
-                for (int jj = j; jj < j + increment; jj++) {
+            // Check for out of bounds
+            int ix = i + increment;
+            int jx = j + increment;
+            
+            if (increment > 1) {
+                if (ix > image.getWidth()) ix = image.getWidth();
+                if (jx > image.getHeight()) jx = image.getHeight();
+            }
+            
+            // Set pixels
+            for (int ii = i; ii < ix; ii++) {
+                for (int jj = j; jj < jx; jj++) {
                     image.setRGB(ii, jj, pixelColor);
                 }
             }
@@ -169,7 +183,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 if (voxelNow > voxelMax) voxelMax = voxelNow;
             }
 
-            int red = (int)(255 * voxelMax / volume.getMaximum());
+            int red = (int)(255 * voxelMax / maxIntensity);
             int color = (red << 24) | (255 << 16) | (255 << 8);
 
             return color;
