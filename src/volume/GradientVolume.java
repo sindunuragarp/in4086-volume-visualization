@@ -75,6 +75,10 @@ public class GradientVolume {
         return getGradient(x, y, z);
     }
 
+    /*
+    To be implemented: Returns trilinear interpolated gradient based on the precomputed gradients. 
+    Use function interpolate. Use getGradientNN as bases
+    */ 
     public VoxelGradient getGradientInterpolate(double[] coord) {
 
         // Check for coords outside dimensions
@@ -129,6 +133,10 @@ public class GradientVolume {
         return gradxyz;
     }
     
+    /*
+    To be implemented: this function linearly interpolates gradient vector g0 and g1 given the factor (t) 
+    the resut is given at result. You can use it to tri-linearly interpolate the gradient  
+    */
     private VoxelGradient interpolate(VoxelGradient g0, VoxelGradient g1, float factor) {
         
         float x = Math.round((1.0-factor)*g0.x + factor*g1.x);
@@ -140,6 +148,9 @@ public class GradientVolume {
     
     // -------------------------------------------------------------------------
     
+    /*
+    To be implemented: compute the gradient of contained in the volume attribute
+    */
     private void compute() {
         // clear data
         for (int i=0; i<data.length; i++) {
@@ -171,6 +182,9 @@ public class GradientVolume {
         }
     }
     
+    /* 
+    to be implemented: Returns the maximum gradient magnitude
+    */
     public float getMaxGradientMagnitude() {
         float maximum = data[0].mag;
         for (VoxelGradient grad : data) {

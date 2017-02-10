@@ -84,6 +84,10 @@ public class Volume {
         return getVoxel(x, y, z);
     }
     
+    /*
+    to be implemented: get the trilinear interpolated value. 
+    The current implementation gets the Nearest Neightbour
+    */
     public short getVoxelInterpolate(double[] coord) {
         
         // Check for coords outside dimensions

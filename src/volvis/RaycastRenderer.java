@@ -51,6 +51,11 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
     
     // -------------------------------------------------------------------------
 
+    /* 
+    To be partially implemented: This function traces the rays through the 
+    volume. Have a look and check that you understand how it works.
+    You need to introduce here the different modalities MIP/Compositing/TF2/ etc...
+    */
     void raycast(double[] viewMatrix) {
         
         // rendering vars
@@ -163,6 +168,10 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         
         // raytrace functions
         
+        /*
+        to be implemented:  You need to sample the ray and implement the MIP
+        right now it just returns yellow as a color
+        */
         private int traceRayMIP(double[] entryPoint, double[] exitPoint) {
             int totalSteps = calcTotalSteps(entryPoint, exitPoint);
             short voxelMax = 0;
