@@ -117,6 +117,8 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         }
     }
     
+    // -------------------------------------------------------------------------
+    
     private class ColorSetter extends Thread {
         
         private final int posI;
@@ -147,7 +149,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             int pixelColor = 0;
 
             if(mipMode) pixelColor = traceRayMIP(entryPoint,exitPoint);
-            else if(compositingMode) pixelColor = traceRayCompositing(entryPoint,exitPoint);
+            else if(compositingMode || tf2dMode) pixelColor = traceRayCompositing(entryPoint,exitPoint);
 
             // Check for out of bounds
             int ix = posI + increment;
@@ -166,7 +168,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             }
         }
         
-        // raytrace functions
+        // ---------------------------------------------------------------------
         
         /*
         to be implemented:  You need to sample the ray and implement the MIP
@@ -181,7 +183,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 
                 // check max
                 double[] coord = calcCoord(i, totalSteps);
-                short voxelNow = volume.getVoxelNearest(coord);
+                short voxelNow = interactiveMode ? volume.getVoxelNearest(coord) : volume.getVoxelInterpolate(coord);
                 if (voxelNow > voxelMax) voxelMax = voxelNow;
             }
 
@@ -202,10 +204,14 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             // run compositing (front to back)
             for (int i=0; i<totalSteps; i++){
                 
-                // get voxel color
+                // get coord values
                 double[] coord = calcCoord(i, totalSteps);
+                VoxelGradient grad = interactiveMode ? gradients.getGradientNearest(coord) : gradients.getGradientInterpolate(coord);
                 short voxel = interactiveMode ? volume.getVoxelNearest(coord) : volume.getVoxelInterpolate(coord);
-                TFColor vColor = tFunc.getColor(voxel);
+                
+                // get voxel color
+                TFColor vColor = tf2dMode ? getTF2DColor(voxel, grad) : tFunc.getColor(voxel);
+                if(shadingMode) vColor = calcShade(vColor, grad);
                 
                 // accumulate color (compositing)
                 color.r += (1-color.a) * vColor.r * vColor.a;
@@ -227,10 +233,9 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             return argb;
         }
         
-        // helper functions
+        // ---------------------------------------------------------------------
         
         private int calcTotalSteps(double[] entryPoint, double[] exitPoint) {
-            // get ray length
             double xDist = exitPoint[0] - entryPoint[0];
             double yDist = exitPoint[1] - entryPoint[1];
             double zDist = exitPoint[2] - entryPoint[2];
@@ -250,6 +255,41 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             coord[2] = entryPoint[2] - (step * viewVec[2]);
             
             return coord;
+        }
+        
+        // ---------------------------------------------------------------------
+        
+        private TFColor getTF2DColor(short intensity, VoxelGradient gradient) {
+            
+            // transfer function values
+            TransferFunction2DEditor.TriangleWidget widget = tfEditor2D.triangleWidget;
+            TFColor color = widget.color;
+            short baseIntensity = widget.baseIntensity;
+            double radius = widget.radius;
+            
+            // get gradient based opacity
+            double alpha = calcGradientBasedOpacity(intensity, baseIntensity, radius, gradient.mag);
+
+            // return color
+            return new TFColor(color.r, color.g, color.b, color.a * alpha);
+        }
+        
+        private double calcGradientBasedOpacity(short in, short bin, double rad, float mag) {
+            
+            int din = in - bin;
+            
+            // absolute opacity conditions
+            if(din == 0) return 1.0;
+            if(mag < 0 || Math.abs(din) > rad*mag) return 0.0;
+            if(mag == 0) return 1.0;
+            
+            // calculate partial opacity
+            double alpha = 1 - (1/rad)*Math.abs(din/mag);
+            return alpha;
+        }
+        
+        private TFColor calcShade(TFColor color, VoxelGradient grad) {
+            return color;
         }
     }
     
