@@ -57,7 +57,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         int increment = 1;
         float sampleStep = 0.2f;
         
-        if(this.interactiveMode) {
+        if(interactiveMode) {
             increment = (int) Math.floor(image.getWidth()/100);
             sampleStep = 1.0f;
         }
@@ -111,8 +111,8 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
     
     private class RunCalculation extends Thread {
         
-        private int i;
-        private int j;
+        private int posI;
+        private int posJ;
         
         private double[] viewVec;
         private double[] entryPoint;
@@ -123,8 +123,8 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         short maxIntensity;
         
         RunCalculation(int i, int j, double[] viewVec, double[] entryPoint, double[] exitPoint, float sampleStep, int increment, short maxIntensity) {
-            this.i = i;
-            this.j = j;
+            this.posI = i;
+            this.posJ = j;
             this.viewVec = viewVec;
             this.entryPoint = entryPoint;
             this.exitPoint = exitPoint;
@@ -142,8 +142,8 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             else if(compositingMode) pixelColor = traceRayCompositing(entryPoint,exitPoint);
 
             // Check for out of bounds
-            int ix = i + increment;
-            int jx = j + increment;
+            int ix = posI + increment;
+            int jx = posJ + increment;
             
             if (increment > 1) {
                 if (ix > image.getWidth()) ix = image.getWidth();
@@ -151,15 +151,14 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             }
             
             // Set pixels
-            for (int ii = i; ii < ix; ii++) {
-                for (int jj = j; jj < jx; jj++) {
+            for (int ii = posI; ii < ix; ii++) {
+                for (int jj = posJ; jj < jx; jj++) {
                     image.setRGB(ii, jj, pixelColor);
                 }
             }
         }
         
-        private int traceRayMIP(double[] entryPoint, double[] exitPoint) {
-
+        private int calcTotalSteps(double[] entryPoint, double[] exitPoint) {
             // get ray length
             double xDist = exitPoint[0] - entryPoint[0];
             double yDist = exitPoint[1] - entryPoint[1];
@@ -167,72 +166,74 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
             double rayLength = Math.sqrt(xDist*xDist + yDist*yDist + zDist*zDist);
             int totalSteps = (int) Math.floor(rayLength/sampleStep);
-
-            // find maximum intensity along all voxels in the ray from viewvector
+            
+            return totalSteps;
+        }
+        
+        private double[] calcCoord(double currentStep, double totalStep) {
+            double step = sampleStep * currentStep;
+            double[] coord = new double[3];
+            
+            coord[0] = entryPoint[0] - (step * viewVec[0]);
+            coord[1] = entryPoint[1] - (step * viewVec[1]);
+            coord[2] = entryPoint[2] - (step * viewVec[2]);
+            
+            return coord;
+        }
+        
+        private int traceRayMIP(double[] entryPoint, double[] exitPoint) {
+            int totalSteps = calcTotalSteps(entryPoint, exitPoint);
             short voxelMax = 0;
-            for (int i=0; i<totalSteps; i++){
-                double[] coord = new double[3];
-                double step = sampleStep*i;
-                
-                coord[0] = entryPoint[0] - (step * viewVec[0]);
-                coord[1] = entryPoint[1] - (step * viewVec[1]);
-                coord[2] = entryPoint[2] - (step * viewVec[2]);
 
+            // find maximum intensity
+            for (int i=0; i<totalSteps; i++){
+                
+                // check max
+                double[] coord = calcCoord(i, totalSteps);
                 short voxelNow = volume.getVoxelNearest(coord);
                 if (voxelNow > voxelMax) voxelMax = voxelNow;
             }
 
-            int red = (int)(255 * voxelMax / maxIntensity);
-            int color = (red << 24) | (255 << 16) | (255 << 8);
-
-            return color;
+            // calculate rgb value
+            int a = (int)(255 * voxelMax / maxIntensity);
+            int r = 255;
+            int g = 255;
+            int b = 0;
+            
+            int argb = (a << 24) | (r << 16) | (g << 8) | b;
+            return argb;
         }
 
         private int traceRayCompositing(double[] entryPoint, double[] exitPoint) {
-            // get ray length
-            double xDist = exitPoint[0] - entryPoint[0];
-            double yDist = exitPoint[1] - entryPoint[1];
-            double zDist = exitPoint[2] - entryPoint[2];
-
-            double rayLength = Math.sqrt(xDist*xDist + yDist*yDist + zDist*zDist);
-            int totalSteps = (int) Math.floor(rayLength/sampleStep);
+            int totalSteps = calcTotalSteps(entryPoint, exitPoint);
+            TFColor color = new TFColor(0,0,0,0);
             
-            // run compositing
-            TFColor voxelColor = traceRayCompositing(0, totalSteps, new TFColor());
-            
-            int alpha = (1 - voxelColor.a) <= 1.0 ? (int) Math.floor((1 - voxelColor.a) * 255) : 255;
-            int red = voxelColor.r <= 1.0 ? (int) Math.floor(voxelColor.r * 255) : 255;
-            int green = voxelColor.g <= 1.0 ? (int) Math.floor(voxelColor.g * 255) : 255;
-            int blue = voxelColor.b <= 1.0 ? (int) Math.floor(voxelColor.b * 255) : 255;
-
-            int color = (alpha << 24) | (red << 16) | (green << 8) | blue;
-            return color;
-        }
-        
-        private TFColor traceRayCompositing(int i, int totalSteps, TFColor prevColor){
-            double[] coord = new double[3];
-            double step = sampleStep*i;
-
-            coord[0] = entryPoint[0] - (step * viewVec[0]);
-            coord[1] = entryPoint[1] - (step * viewVec[1]);
-            coord[2] = entryPoint[2] - (step * viewVec[2]);
-
-            short voxel = volume.getVoxelNearest(coord);
-            TFColor voxelColor = tFunc.getColor(voxel);
-            TFColor nextColor = new TFColor();
-            
-            nextColor.r = voxelColor.a * voxelColor.r + (1 - voxelColor.a) * prevColor.r;
-            nextColor.g = voxelColor.a * voxelColor.g + (1 - voxelColor.a) * prevColor.g;
-            nextColor.b = voxelColor.a * voxelColor.b + (1 - voxelColor.a) * prevColor.b;
-
-            nextColor.a = (1 - voxelColor.a) * prevColor.a;
-            prevColor = nextColor;
-            
-            if (i < totalSteps){
-                return traceRayCompositing(i+1, totalSteps, prevColor);
-            } else {
-                return prevColor;
+            // run compositing (front to back)
+            for (int i=0; i<totalSteps; i++){
+                
+                // get voxel color
+                double[] coord = calcCoord(i, totalSteps);
+                short voxel = interactiveMode ? volume.getVoxelNearest(coord) : volume.getVoxelInterpolate(coord);
+                TFColor vColor = tFunc.getColor(voxel);
+                
+                // accumulate color (compositing)
+                color.r += (1-color.a) * vColor.r * vColor.a;
+                color.g += (1-color.a) * vColor.g * vColor.a;
+                color.b += (1-color.a) * vColor.b * vColor.a;
+                color.a += (1-color.a) * vColor.a;
+                
+                // early termination
+                if(color.a > 0.99) break;
             }
+            
+            // calculate rgb value
+            int a = color.a < 1.0 ? (int) Math.floor(color.a * 255) : 255;
+            int r = color.r < 1.0 ? (int) Math.floor(color.r * 255) : 255;
+            int g = color.g < 1.0 ? (int) Math.floor(color.g * 255) : 255;
+            int b = color.b < 1.0 ? (int) Math.floor(color.b * 255) : 255;
+
+            int argb = (a << 24) | (r << 16) | (g << 8) | b;
+            return argb;
         }
     }
     
