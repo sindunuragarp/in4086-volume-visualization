@@ -94,52 +94,52 @@ public class Volume {
         }
         
         // Get i and t for all axis
-        int x = (int) Math.floor(coord[0]);
-        int y = (int) Math.floor(coord[1]);
-        int z = (int) Math.floor(coord[2]);
+        int x0 = (int) Math.floor(coord[0]);
+        int y0 = (int) Math.floor(coord[1]);
+        int z0 = (int) Math.floor(coord[2]);
         
-        double dx = coord[0] - x;
-        double dy = coord[1] - y;
-        double dz = coord[2] - z;
+        double dx = coord[0] - x0;
+        double dy = coord[1] - y0;
+        double dz = coord[2] - z0;
         
         // Check if i + 1 outside dimensions
-        int xi = x + 1;
-        int yi = y + 1;
-        int zi = z + 1;
+        int x1 = x0 + 1;
+        int y1 = y0 + 1;
+        int z1 = z0 + 1;
         
-        if (xi > dimX-1) xi = x;
-        if (yi > dimY-1) yi = y;
-        if (zi > dimZ-1) zi = z;
+        if (x1 > dimX-1) x1 = x0;
+        if (y1 > dimY-1) y1 = y0;
+        if (z1 > dimZ-1) z1 = z0;
         
         // Get surrounding voxels
-        short voxel000 = getVoxel(x, y, z);
-        short voxel100 = getVoxel(xi, y, z);
-        short voxel010 = getVoxel(x, yi, z);
-        short voxel001 = getVoxel(x, y, zi);
-        short voxel110 = getVoxel(xi, yi, z);
-        short voxel101 = getVoxel(xi, y, zi);
-        short voxel011 = getVoxel(x, yi, zi);
-        short voxel111 = getVoxel(xi, yi, zi);
+        short voxel000 = getVoxel(x0, y0, z0);
+        short voxel100 = getVoxel(x1, y0, z0);
+        short voxel010 = getVoxel(x0, y1, z0);
+        short voxel001 = getVoxel(x0, y0, z1);
+        short voxel110 = getVoxel(x1, y1, z0);
+        short voxel101 = getVoxel(x1, y0, z1);
+        short voxel011 = getVoxel(x0, y1, z1);
+        short voxel111 = getVoxel(x1, y1, z1);
         
         // Calculate averages of x axis
-        short voxelx00 = calcAverageVoxel(voxel000, voxel100, dx);
-        short voxelx01 = calcAverageVoxel(voxel001, voxel101, dx);
-        short voxelx10 = calcAverageVoxel(voxel010, voxel110, dx);
-        short voxelx11 = calcAverageVoxel(voxel011, voxel111, dx);
+        short voxelx00 = interpolate(voxel000, voxel100, dx);
+        short voxelx01 = interpolate(voxel001, voxel101, dx);
+        short voxelx10 = interpolate(voxel010, voxel110, dx);
+        short voxelx11 = interpolate(voxel011, voxel111, dx);
         
         // Calculate averages of y axis
-        short voxelxy0 = calcAverageVoxel(voxelx00, voxelx10, dy);
-        short voxelxy1 = calcAverageVoxel(voxelx01, voxelx11, dy);
+        short voxelxy0 = interpolate(voxelx00, voxelx10, dy);
+        short voxelxy1 = interpolate(voxelx01, voxelx11, dy);
         
         // Calculate averages of z axis
-        short voxelxyz = calcAverageVoxel(voxelxy0, voxelxy1, dz);
+        short voxelxyz = interpolate(voxelxy0, voxelxy1, dz);
         
         // Return interpolated voxel
         return voxelxyz;
     }
     
-    private short calcAverageVoxel(short v0, short v1, double dv) {
-        return (short) Math.round((1.0-dv)*v0 + dv*v1);
+    private short interpolate(short v0, short v1, double factor) {
+        return (short) Math.round((1.0-factor)*v0 + factor*v1);
     }
     
     // -------------------------------------------------------------------------
