@@ -96,33 +96,36 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
                 computeEntryAndExit(pixelCoord, viewVec, entryPoint, exitPoint);
                 if ((entryPoint[0] > -1.0) && (exitPoint[0] > -1.0)) {
-                    Thread newThread = new RunCalculation(i, j, viewVec, entryPoint, exitPoint, sampleStep, increment, maxIntensity);
+                    
+                    // Start calculation in different threads
+                    Thread newThread = new ColorSetter(i, j, viewVec, entryPoint, exitPoint, sampleStep, increment, maxIntensity);
                     newThread.run();
                     threads.add(newThread);
                 }
             }
         }
         
+        // Wait for all threads to terminate
         for (Thread thread : threads) {
             try { thread.join(); } 
             catch (InterruptedException ex) {}
         }
     }
     
-    private class RunCalculation extends Thread {
+    private class ColorSetter extends Thread {
         
-        private int posI;
-        private int posJ;
+        private final int posI;
+        private final int posJ;
         
-        private double[] viewVec;
-        private double[] entryPoint;
-        private double[] exitPoint;
+        private final double[] viewVec;
+        private final double[] entryPoint;
+        private final double[] exitPoint;
         
         float sampleStep;
         int increment;
         short maxIntensity;
         
-        RunCalculation(int i, int j, double[] viewVec, double[] entryPoint, double[] exitPoint, float sampleStep, int increment, short maxIntensity) {
+        ColorSetter(int i, int j, double[] viewVec, double[] entryPoint, double[] exitPoint, float sampleStep, int increment, short maxIntensity) {
             this.posI = i;
             this.posJ = j;
             this.viewVec = viewVec;
@@ -158,28 +161,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             }
         }
         
-        private int calcTotalSteps(double[] entryPoint, double[] exitPoint) {
-            // get ray length
-            double xDist = exitPoint[0] - entryPoint[0];
-            double yDist = exitPoint[1] - entryPoint[1];
-            double zDist = exitPoint[2] - entryPoint[2];
-
-            double rayLength = Math.sqrt(xDist*xDist + yDist*yDist + zDist*zDist);
-            int totalSteps = (int) Math.floor(rayLength/sampleStep);
-            
-            return totalSteps;
-        }
-        
-        private double[] calcCoord(double currentStep, double totalStep) {
-            double step = sampleStep * currentStep;
-            double[] coord = new double[3];
-            
-            coord[0] = entryPoint[0] - (step * viewVec[0]);
-            coord[1] = entryPoint[1] - (step * viewVec[1]);
-            coord[2] = entryPoint[2] - (step * viewVec[2]);
-            
-            return coord;
-        }
+        // raytrace functions
         
         private int traceRayMIP(double[] entryPoint, double[] exitPoint) {
             int totalSteps = calcTotalSteps(entryPoint, exitPoint);
@@ -234,6 +216,31 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
             int argb = (a << 24) | (r << 16) | (g << 8) | b;
             return argb;
+        }
+        
+        // helper functions
+        
+        private int calcTotalSteps(double[] entryPoint, double[] exitPoint) {
+            // get ray length
+            double xDist = exitPoint[0] - entryPoint[0];
+            double yDist = exitPoint[1] - entryPoint[1];
+            double zDist = exitPoint[2] - entryPoint[2];
+
+            double rayLength = Math.sqrt(xDist*xDist + yDist*yDist + zDist*zDist);
+            int totalSteps = (int) Math.floor(rayLength/sampleStep);
+            
+            return totalSteps;
+        }
+        
+        private double[] calcCoord(double currentStep, double totalStep) {
+            double step = sampleStep * currentStep;
+            double[] coord = new double[3];
+            
+            coord[0] = entryPoint[0] - (step * viewVec[0]);
+            coord[1] = entryPoint[1] - (step * viewVec[1]);
+            coord[2] = entryPoint[2] - (step * viewVec[2]);
+            
+            return coord;
         }
     }
     
