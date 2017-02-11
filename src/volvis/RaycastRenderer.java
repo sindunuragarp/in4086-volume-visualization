@@ -279,9 +279,12 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             int din = in - bin;
             
             // absolute opacity conditions
-            if(din == 0) return 1.0;
+            if(mag == 0 && din == 0) return 1.0;
             if(mag < 0 || Math.abs(din) > rad*mag) return 0.0;
-            if(mag == 0) return 1.0;
+            
+            //avoid division by zero
+            if(mag == 0) mag = 0.00001f;
+            if(rad == 0) rad = 0.00001f;
             
             // calculate partial opacity
             double alpha = 1 - (1/rad)*Math.abs(din/mag);
