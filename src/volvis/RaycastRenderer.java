@@ -300,15 +300,32 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         private TFColor calcShade(TFColor color, VoxelGradient grad) {
             
             // calculate normalized gradient vector
-            double[] gradVec = new double[3];
-            gradVec[0] = -grad.x / grad.mag;
-            gradVec[1] = -grad.y / grad.mag;
-            gradVec[2] = -grad.z / grad.mag;
+            double[] normGrad = new double[3];
+            normGrad[0] = -grad.x / grad.mag;
+            normGrad[1] = -grad.y / grad.mag;
+            normGrad[2] = -grad.z / grad.mag;
             
-            // TODO : calculate lighting effects
+            // calculate the light vector
+            double[] lightVector = new double[3];
+            lightVector[0] = normGrad[0] - light[0];
+            lightVector[1] = normGrad[1] - light[1];
+            lightVector[2] = normGrad[2] - light[2];
             
-            // fuse lighting effects
-            double contrast = 1.0;
+            // calculate normalized light vector
+            double[] normLightVector = new double[3];
+            double lightVectorMag = Math.sqrt(lightVector[0] * lightVector[0] + lightVector[1] * lightVector[1] + lightVector[2] * lightVector[2]);
+            normLightVector[0] = lightVector[0] / lightVectorMag;
+            normLightVector[1] = lightVector[1] / lightVectorMag;
+            normLightVector[2] = lightVector[2] / lightVectorMag;
+            
+            // calculate the cosine theta
+            double cosTheta = normGrad[0] * normLightVector[0] + normGrad[1] * normLightVector[1] + normGrad[2] * normLightVector[2];
+            cosTheta = cosTheta > 0 ? cosTheta : 0;
+            
+			// TODO : calculate specular
+			
+            // calculate the shade
+            double contrast = ambient + diffuse * cosTheta;
             return new TFColor(color.r*contrast, color.g*contrast, color.b*contrast, color.a);
         }
     }
