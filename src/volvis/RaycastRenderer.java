@@ -119,6 +119,12 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
     
     // -------------------------------------------------------------------------
     
+    // set shading parameters
+    private double specular = 0.2;
+    private double diffuse = 0.7;
+    private double ambient = 0.1;
+    private double[] lightVec = {1.0, 0.0, 0.0};
+            
     private class ColorSetter extends Thread {
         
         private final int posI;
@@ -282,7 +288,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             if(mag == 0 && din == 0) return 1.0;
             if(mag < 0 || Math.abs(din) > rad*mag) return 0.0;
             
-            //avoid division by zero
+            // avoid division by zero
             if(mag == 0) mag = 0.00001f;
             if(rad == 0) rad = 0.00001f;
             
@@ -292,7 +298,18 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         }
         
         private TFColor calcShade(TFColor color, VoxelGradient grad) {
-            return color;
+            
+            // calculate normalized gradient vector
+            double[] gradVec = new double[3];
+            gradVec[0] = -grad.x / grad.mag;
+            gradVec[1] = -grad.y / grad.mag;
+            gradVec[2] = -grad.z / grad.mag;
+            
+            // TODO : calculate lighting effects
+            
+            // fuse lighting effects
+            double contrast = 1.0;
+            return new TFColor(color.r*contrast, color.g*contrast, color.b*contrast, color.a);
         }
     }
     
