@@ -69,7 +69,7 @@ public class TransferFunction2DEditor extends javax.swing.JPanel {
         maxGradientMagnitude = gradvol.getMaxGradientMagnitude();
 
         System.out.println("maxIntensity = " + maxIntensity);
-        System.out.println("max gradient = " + maxGradientMagnitude);
+        System.out.println("maxGradient  = " + maxGradientMagnitude);
 
         xbins = maxIntensity + 1;
         ybins = 300;
@@ -89,6 +89,7 @@ public class TransferFunction2DEditor extends javax.swing.JPanel {
         intensityLabel.setText(Integer.toString(triangleWidget.baseIntensity));
         radiusLabel.setText(String.format("%.3f", triangleWidget.radius));
         opacityLabel.setText(String.format("%.1f", triangleWidget.color.a));
+        boundaryEmphasis.setText(String.format("%.3f", triangleWidget.emphasis));
         colorButton.setBackground(new Color((float) triangleWidget.color.r, (float) triangleWidget.color.g, (float) triangleWidget.color.b));
     }
 
@@ -112,11 +113,13 @@ public class TransferFunction2DEditor extends javax.swing.JPanel {
         jLabel4 = new javax.swing.JLabel();
         jLabel5 = new javax.swing.JLabel();
         jLabel6 = new javax.swing.JLabel();
-        colorButton = new javax.swing.JButton();
         jLabel7 = new javax.swing.JLabel();
+        jLabel8 = new javax.swing.JLabel();
+        colorButton = new javax.swing.JButton();
         opacityLabel = new javax.swing.JTextField();
         intensityLabel = new javax.swing.JTextField();
         radiusLabel = new javax.swing.JTextField();
+        boundaryEmphasis = new javax.swing.JTextField();
 
         javax.swing.GroupLayout plotPanelLayout = new javax.swing.GroupLayout(plotPanel);
         plotPanel.setLayout(plotPanelLayout);
@@ -153,6 +156,10 @@ public class TransferFunction2DEditor extends javax.swing.JPanel {
 
         jLabel6.setText("Color");
 
+        jLabel7.setText("Radius");
+
+        jLabel8.setText("Boundary Emphasis");
+
         colorButton.setBounds(new java.awt.Rectangle(0, 0, 75, 29));
         colorButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -160,13 +167,19 @@ public class TransferFunction2DEditor extends javax.swing.JPanel {
             }
         });
 
-        jLabel7.setText("Radius");
-
         opacityLabel.setText("jTextField2");
         opacityLabel.setMinimumSize(new java.awt.Dimension(84, 28));
         opacityLabel.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 opacityLabelActionPerformed(evt);
+            }
+        });
+
+        boundaryEmphasis.setText("jTextField1");
+        boundaryEmphasis.setRequestFocusEnabled(true);
+        boundaryEmphasis.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                boundaryEmphasisActionPerformed(evt);
             }
         });
 
@@ -213,9 +226,13 @@ public class TransferFunction2DEditor extends javax.swing.JPanel {
                                 .addComponent(labelMaxVal)
                                 .addContainerGap())
                             .addGroup(layout.createSequentialGroup()
-                                .addComponent(jLabel7)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(jLabel7)
+                                    .addComponent(jLabel8))
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(radiusLabel, javax.swing.GroupLayout.PREFERRED_SIZE, 84, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                    .addComponent(radiusLabel, javax.swing.GroupLayout.PREFERRED_SIZE, 84, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(boundaryEmphasis, javax.swing.GroupLayout.PREFERRED_SIZE, 84, javax.swing.GroupLayout.PREFERRED_SIZE))
                                 .addGap(130, 130, 130))))
                     .addGroup(layout.createSequentialGroup()
                         .addComponent(plotPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -249,8 +266,10 @@ public class TransferFunction2DEditor extends javax.swing.JPanel {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel5)
-                    .addComponent(opacityLabel, javax.swing.GroupLayout.PREFERRED_SIZE, 28, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                    .addComponent(opacityLabel, javax.swing.GroupLayout.PREFERRED_SIZE, 28, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel8)
+                    .addComponent(boundaryEmphasis, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(7, 7, 7)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(colorButton, javax.swing.GroupLayout.PREFERRED_SIZE, 29, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, 29, javax.swing.GroupLayout.PREFERRED_SIZE))
@@ -287,23 +306,44 @@ public class TransferFunction2DEditor extends javax.swing.JPanel {
         changed();
     }//GEN-LAST:event_opacityLabelActionPerformed
 
+    private void boundaryEmphasisActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_boundaryEmphasisActionPerformed
+        try {
+            double value = Double.parseDouble(boundaryEmphasis.getText());
+            if (value < 0) {
+                value = 0;
+            } 
+            if (value > 1.0) {
+                value = 1.0;
+            }
+            triangleWidget.emphasis = value;
+        } catch (NumberFormatException e) {
+            triangleWidget.emphasis = 0.0;
+        }
+        setSelectedInfo();
+        changed();
+    }//GEN-LAST:event_boundaryEmphasisActionPerformed
+
     public class TriangleWidget {
 
         public short baseIntensity;
         public double radius;
+        public double emphasis;
         public TFColor color;
-        
 
         public TriangleWidget(short base, double r) {
             this.baseIntensity = base;
             this.radius = r;
             this.color = new TFColor(0.0, 204.0/255.0, 153.0/255.0, 0.3);
+            this.emphasis = 0.0;
         }
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton colorButton;
     private javax.swing.JTextField intensityLabel;
+    private javax.swing.JTextField opacityLabel;
+    private javax.swing.JTextField radiusLabel;
+    private javax.swing.JTextField boundaryEmphasis;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
@@ -311,12 +351,11 @@ public class TransferFunction2DEditor extends javax.swing.JPanel {
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel7;
+    private javax.swing.JLabel jLabel8;
     private javax.swing.JLabel labelGradMax;
     private javax.swing.JLabel labelGradMin;
     private javax.swing.JLabel labelMaxVal;
     private javax.swing.JLabel labelMinVal;
-    private javax.swing.JTextField opacityLabel;
     private javax.swing.JPanel plotPanel;
-    private javax.swing.JTextField radiusLabel;
     // End of variables declaration//GEN-END:variables
 }
