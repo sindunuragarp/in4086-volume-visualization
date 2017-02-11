@@ -19,23 +19,12 @@ public class GradientVolume {
         dimX = vol.getDimX();
         dimY = vol.getDimY();
         dimZ = vol.getDimZ();
-        data = new VoxelGradient[dimX * dimY * dimZ];
+        grad1 = new VoxelGradient[dimX * dimY * dimZ];
+        grad2 = new VoxelGradient[dimX * dimY * dimZ];
         compute();
         maxmag = -1.0;
     }
     
-    public VoxelGradient getGradient(int x, int y, int z) {
-        return data[x + dimX * (y + dimY * z)];
-    }
-    
-    public VoxelGradient getGradient(double[] coord) {
-        return getGradientInterpolate(coord);
-    }
-    
-    public VoxelGradient getVoxel(int i) {
-        return data[i];
-    }
-
     public int getDimX() {
         return dimX;
     }
@@ -48,17 +37,47 @@ public class GradientVolume {
         return dimZ;
     }
     
-    public void setGradient(int x, int y, int z, VoxelGradient value) {
-        data[x + dimX * (y + dimY * z)] = value;
+    public VoxelGradient getVoxel(int i) {
+        return grad1[i];
     }
-
+    
+    public VoxelGradient getGradient(int x, int y, int z) {
+        return getGradient(x,y,z,false);
+    }
+    
+    public VoxelGradient getGradient(int x, int y, int z, boolean isSecondGradient) {
+        if(isSecondGradient) return grad2[x + dimX * (y + dimY * z)];
+        return grad1[x + dimX * (y + dimY * z)];
+    }
+    
+    public VoxelGradient getGradient(double[] coord) {
+        return getGradientInterpolate(coord);
+    }
+    
+    public VoxelGradient getSecondGradient(double[] coord) {
+        return getGradientInterpolate(coord, true);
+    }
+    
     public void setVoxel(int i, VoxelGradient value) {
-        data[i] = value;
+        grad1[i] = value;
+    }
+    
+    public void setGradient(int x, int y, int z, VoxelGradient value) {
+        setGradient(x, y, z, value, false);
+    }
+    
+    public void setGradient(int x, int y, int z, VoxelGradient value, boolean isSecondGradient) {
+        if(isSecondGradient) grad2[x + dimX * (y + dimY * z)] = value;
+        else grad1[x + dimX * (y + dimY * z)] = value;
     }
 
     // -------------------------------------------------------------------------
     
     public VoxelGradient getGradientNearest(double[] coord) {
+        return getGradientNearest(coord, false);
+    }
+    
+    public VoxelGradient getGradientNearest(double[] coord, boolean isSecondGradient) {
         
         // Check for coords outside dimensions
         if (coord[0] < 0 || coord[0] > (dimX-1) || 
@@ -72,14 +91,18 @@ public class GradientVolume {
         int y = (int) Math.round(coord[1]);
         int z = (int) Math.round(coord[2]);
         
-        return getGradient(x, y, z);
+        return getGradient(x, y, z, isSecondGradient);
     }
 
     /*
     To be implemented: Returns trilinear interpolated gradient based on the precomputed gradients. 
     Use function interpolate. Use getGradientNN as bases
-    */ 
+    */
     public VoxelGradient getGradientInterpolate(double[] coord) {
+        return getGradientInterpolate(coord, false);
+    }
+    
+    public VoxelGradient getGradientInterpolate(double[] coord, boolean isSecondGradient) {
 
         // Check for coords outside dimensions
         if (coord[0] < 0 || coord[0] > (dimX-1) || 
@@ -107,14 +130,14 @@ public class GradientVolume {
         if (z1 > dimZ-1) z1 = z0;
         
         // Get surrounding grads
-        VoxelGradient grad000 = getGradient(x0, y0, z0);
-        VoxelGradient grad100 = getGradient(x1, y0, z0);
-        VoxelGradient grad010 = getGradient(x0, y1, z0);
-        VoxelGradient grad001 = getGradient(x0, y0, z1);
-        VoxelGradient grad110 = getGradient(x1, y1, z0);
-        VoxelGradient grad101 = getGradient(x1, y0, z1);
-        VoxelGradient grad011 = getGradient(x0, y1, z1);
-        VoxelGradient grad111 = getGradient(x1, y1, z1);
+        VoxelGradient grad000 = getGradient(x0, y0, z0, isSecondGradient);
+        VoxelGradient grad100 = getGradient(x1, y0, z0, isSecondGradient);
+        VoxelGradient grad010 = getGradient(x0, y1, z0, isSecondGradient);
+        VoxelGradient grad001 = getGradient(x0, y0, z1, isSecondGradient);
+        VoxelGradient grad110 = getGradient(x1, y1, z0, isSecondGradient);
+        VoxelGradient grad101 = getGradient(x1, y0, z1, isSecondGradient);
+        VoxelGradient grad011 = getGradient(x0, y1, z1, isSecondGradient);
+        VoxelGradient grad111 = getGradient(x1, y1, z1, isSecondGradient);
         
         // Calculate averages of x axis
         VoxelGradient gradx00 = interpolate(grad000, grad100, dx);
@@ -153,8 +176,8 @@ public class GradientVolume {
     */
     private void compute() {
         // clear data
-        for (int i=0; i<data.length; i++) {
-            data[i] = zero;
+        for (int i=0; i<grad1.length; i++) {
+            grad1[i] = zero;
         }
         
         // calculate gradients
@@ -163,6 +186,7 @@ public class GradientVolume {
                 for(int z=1; z<dimZ-1; z++) {
                     
                     // get voxels
+                    short o  = volume.getVoxel(x, y, z);
                     short x0 = volume.getVoxel(x-1, y, z);
                     short x1 = volume.getVoxel(x+1, y, z);
                     short y0 = volume.getVoxel(x, y-1, z);
@@ -176,7 +200,15 @@ public class GradientVolume {
                     float dz = (float) (z1-z0)/2;
                     
                     // set gradient
-                    setGradient(x, y, z, new VoxelGradient(dx, dy, dz));
+                    setGradient(x, y, z, new VoxelGradient(dx, dy, dz), false);
+                    
+                    // calculate second order central differences
+                    float d2x = (float) (x1+2*o-x0)/4;
+                    float d2y = (float) (y1+2*o-y0)/4;
+                    float d2z = (float) (z1+2*o-z0)/4;
+                    
+                    // set second gradient
+                    setGradient(x, y, z, new VoxelGradient(d2x, d2y, d2z), true);
                 }
             }
         }
@@ -186,8 +218,8 @@ public class GradientVolume {
     to be implemented: Returns the maximum gradient magnitude
     */
     public float getMaxGradientMagnitude() {
-        float maximum = data[0].mag;
-        for (VoxelGradient grad : data) {
+        float maximum = grad1[0].mag;
+        for (VoxelGradient grad : grad1) {
             float now = grad.mag;
             if(now > maximum) maximum = now;
         }
@@ -198,7 +230,8 @@ public class GradientVolume {
     
     private int dimX, dimY, dimZ;
     private VoxelGradient zero = new VoxelGradient();
-    VoxelGradient[] data;
+    VoxelGradient[] grad1;
+    VoxelGradient[] grad2;
     Volume volume;
     double maxmag;
 }
