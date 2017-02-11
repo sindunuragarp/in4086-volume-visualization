@@ -123,7 +123,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
     private double specular = 0.2;
     private double diffuse = 0.7;
     private double ambient = 0.1;
-    private double[] lightVec = {1.0, 0.0, 0.0};
+    private double[] light = {1.0, 0.0, 0.0};
             
     private class ColorSetter extends Thread {
         
