@@ -284,15 +284,14 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         
         private double calcGradientBasedOpacity(short in, short bin, double rad, double shear, float mag) {
             
+            // adjust radius to shear
             int din = in - bin;
+            if(din < 0) rad = rad - rad*shear;
+            else rad = rad + rad*shear;
             
             // absolute opacity conditions
             if(mag == 0 && din == 0) return 1.0;
             if(mag < 0 || Math.abs(din) > rad*mag) return 0.0;
-            
-            // adjust radius to shear
-            if(din < 0) rad = rad - rad*shear;
-            else rad = rad + rad*shear;
             
             // avoid division by zero
             if(mag == 0) mag = 0.00001f;
