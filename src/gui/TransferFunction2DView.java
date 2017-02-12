@@ -76,11 +76,11 @@ public class TransferFunction2DView extends javax.swing.JPanel {
         
         int ypos = h;
         int xpos = (int) (ed.triangleWidget.baseIntensity * binWidth);
-        int xrange = (int) (ed.triangleWidget.radius * binWidth * ed.maxGradientMagnitude);
-        int shear = (int) (ed.triangleWidget.shear * xrange);
+        int xrad = (int) (ed.triangleWidget.radius * binWidth * ed.maxGradientMagnitude);
+        int xshear = (int) (ed.triangleWidget.shear * xrad);
         
         baseControlPoint = new Ellipse2D.Double(xpos - DOTSIZE / 2, ypos - DOTSIZE, DOTSIZE, DOTSIZE);
-        radiusControlPoint = new Ellipse2D.Double(xpos + xrange - DOTSIZE / 2,  0, DOTSIZE, DOTSIZE);
+        radiusControlPoint = new Ellipse2D.Double(xpos + xrad - DOTSIZE / 2,  0, DOTSIZE, DOTSIZE);
 
         // draw dashed line when shear is not zero
         if(ed.triangleWidget.shear != 0){
@@ -89,15 +89,15 @@ public class TransferFunction2DView extends javax.swing.JPanel {
             
             g2c.setStroke(dashed);
             g2c.setColor(Color.LIGHT_GRAY);
-            g2c.drawLine(xpos, ypos, xpos - xrange, 0);
-            g2c.drawLine(xpos, ypos, xpos + xrange, 0);
+            g2c.drawLine(xpos, ypos, xpos - xrad, 0);
+            g2c.drawLine(xpos, ypos, xpos + xrad, 0);
             
             g2c.dispose();
         }
         
         g2.setColor(Color.BLACK);
-        g2.drawLine(xpos, ypos, xpos - xrange + shear, 0);
-        g2.drawLine(xpos, ypos, xpos + xrange + shear, 0);
+        g2.drawLine(xpos, ypos, xpos - xrad + xshear, 0);
+        g2.drawLine(xpos, ypos, xpos + xrad + xshear, 0);
         g2.fill(baseControlPoint);
         g2.fill(radiusControlPoint);
     }

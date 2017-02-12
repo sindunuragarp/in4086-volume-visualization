@@ -276,19 +276,23 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             double shear = widget.shear; // added parameter based on the paper by Kniss
             
             // get gradient based opacity
-            double alpha = calcGradientBasedOpacity(intensity, baseIntensity, radius, gradient.mag);
+            double alpha = calcGradientBasedOpacity(intensity, baseIntensity, radius, shear, gradient.mag);
 
             // return color
             return new TFColor(color.r, color.g, color.b, color.a * alpha);
         }
         
-        private double calcGradientBasedOpacity(short in, short bin, double rad, float mag) {
+        private double calcGradientBasedOpacity(short in, short bin, double rad, double shear, float mag) {
             
             int din = in - bin;
             
             // absolute opacity conditions
             if(mag == 0 && din == 0) return 1.0;
             if(mag < 0 || Math.abs(din) > rad*mag) return 0.0;
+            
+            // adjust radius to shear
+            if(din < 0) rad = rad - rad*shear;
+            else rad = rad + rad*shear;
             
             // avoid division by zero
             if(mag == 0) mag = 0.00001f;
