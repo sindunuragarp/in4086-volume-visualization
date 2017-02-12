@@ -123,6 +123,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
     private double specular = 0.2;
     private double diffuse = 0.7;
     private double ambient = 0.1;
+    private double alpha = 10;
     private double[] light = {1.0, 0.0, 0.0};
             
     private class ColorSetter extends Thread {
@@ -322,10 +323,38 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             double cosTheta = normGrad[0] * normLightVector[0] + normGrad[1] * normLightVector[1] + normGrad[2] * normLightVector[2];
             cosTheta = cosTheta > 0 ? cosTheta : 0;
             
-			// TODO : calculate specular
-			
+            // calculate the view vector
+            double[] viewVector = new double[3];
+            viewVector[0] = normGrad[0] - viewVec[0];
+            viewVector[1] = normGrad[1] - viewVec[1];
+            viewVector[2] = normGrad[2] - viewVec[2];
+            
+            // calculate normalized view vector
+            double[] normViewVector = new double[3];
+            double viewVectorMag = Math.sqrt(viewVector[0] * viewVector[0] + viewVector[1] * viewVector[1] + viewVector[2] * viewVector[2]);
+            normViewVector[0] = viewVector[0] / viewVectorMag;
+            normViewVector[1] = viewVector[1] / viewVectorMag;
+            normViewVector[2] = viewVector[2] / viewVectorMag;
+            
+            // calculate the vector in direction of maximum highlight
+            double[] highlightVector = new double[3];
+            highlightVector[0] = normViewVector[0] + normLightVector[0];
+            highlightVector[1] = normViewVector[1] + normLightVector[1];
+            highlightVector[2] = normViewVector[2] + normLightVector[2];
+            
+            // calculate normalized vector in direction of maximum highlight
+            double[] normHighlightVector = new double[3];
+            double highlightVectorMag = Math.sqrt(highlightVector[0] * highlightVector[0] + highlightVector[1] * highlightVector[1] + highlightVector[2] * highlightVector[2]);
+            normHighlightVector[0] = highlightVector[0] / highlightVectorMag;
+            normHighlightVector[1] = highlightVector[1] / highlightVectorMag;
+            normHighlightVector[2] = highlightVector[2] / highlightVectorMag;
+            
+            // calculate the cosine 
+            double cosVarphi = Math.pow(normGrad[0] * normHighlightVector[0] + normGrad[1] * normHighlightVector[1] + normGrad[2] * normHighlightVector[2], alpha);
+            cosVarphi = cosVarphi > 0 ? cosVarphi : 0;
+            
             // calculate the shade
-            double contrast = ambient + diffuse * cosTheta;
+            double contrast = ambient + diffuse * cosTheta + specular * cosVarphi;
             return new TFColor(color.r*contrast, color.g*contrast, color.b*contrast, color.a);
         }
     }
