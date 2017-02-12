@@ -77,7 +77,7 @@ public class TransferFunction2DView extends javax.swing.JPanel {
         int ypos = h;
         int xpos = (int) (ed.triangleWidget.baseIntensity * binWidth);
         int xrad = (int) (ed.triangleWidget.radius * binWidth * ed.maxGradientMagnitude);
-        int xshear = (int) (ed.triangleWidget.shear * xrad);
+        int xadj = (int) (xrad * ed.triangleWidget.shear);
         
         baseControlPoint = new Ellipse2D.Double(xpos - DOTSIZE / 2, ypos - DOTSIZE, DOTSIZE, DOTSIZE);
         radiusControlPoint = new Ellipse2D.Double(xpos + xrad - DOTSIZE / 2,  0, DOTSIZE, DOTSIZE);
@@ -96,8 +96,8 @@ public class TransferFunction2DView extends javax.swing.JPanel {
         }
         
         g2.setColor(Color.BLACK);
-        g2.drawLine(xpos, ypos, xpos - xrad + xshear, 0);
-        g2.drawLine(xpos, ypos, xpos + xrad + xshear, 0);
+        g2.drawLine(xpos, ypos, xpos - xrad + xadj, 0);
+        g2.drawLine(xpos, ypos, xpos + xrad + xadj, 0);
         g2.fill(baseControlPoint);
         g2.fill(radiusControlPoint);
     }

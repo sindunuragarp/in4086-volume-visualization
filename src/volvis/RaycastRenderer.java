@@ -286,10 +286,10 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             
             // adjust radius to shear
             int din = in - bin;
-            if(din < 0) rad = rad - rad*shear;
-            else rad = rad + rad*shear;
+            double adj = rad * shear;
+            rad = (din < 0) ? rad-adj : rad+adj;
             
-            // absolute opacity conditions
+            // absolute opacity conditions (triangle border)
             if(mag == 0 && din == 0) return 1.0;
             if(mag < 0 || Math.abs(din) > rad*mag) return 0.0;
             
