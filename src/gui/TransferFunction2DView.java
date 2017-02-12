@@ -77,7 +77,7 @@ public class TransferFunction2DView extends javax.swing.JPanel {
         int ypos = h;
         int xpos = (int) (ed.triangleWidget.baseIntensity * binWidth);
         int xrad = (int) (ed.triangleWidget.radius * binWidth * ed.maxGradientMagnitude);
-        int xadj = (int) (xrad * ed.triangleWidget.shear);
+        int xadj = (int) (3*xrad * ed.triangleWidget.shear);
         
         baseControlPoint = new Ellipse2D.Double(xpos - DOTSIZE / 2, ypos - DOTSIZE, DOTSIZE, DOTSIZE);
         radiusControlPoint = new Ellipse2D.Double(xpos + xrad - DOTSIZE / 2,  0, DOTSIZE, DOTSIZE);
