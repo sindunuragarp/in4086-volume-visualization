@@ -58,11 +58,11 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
     */
     void raycast(double[] viewMatrix) {
         
-        // rendering vars
+        // rendering parameters
         int increment = 1;
         float sampleStep = 0.2f;
         
-        if(interactiveMode) {
+        if(interactiveMode) { // lower parameter when interactive mode
             increment = (int) Math.floor(image.getWidth()/100);
             sampleStep = 1.0f;
         }
@@ -103,7 +103,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 if ((entryPoint[0] > -1.0) && (exitPoint[0] > -1.0)) {
                     
                     // Start calculation in different threads
-                    Thread newThread = new ColorSetter(i, j, viewVec, entryPoint, exitPoint, sampleStep, increment, maxIntensity);
+                    Thread newThread = new Raycaster(i, j, viewVec, entryPoint, exitPoint, sampleStep, increment, maxIntensity);
                     newThread.run();
                     threads.add(newThread);
                 }
@@ -126,7 +126,8 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
     private double alpha = 10;
     private double[] lightVec = {1.0, 0.0, 0.0};
             
-    private class ColorSetter extends Thread {
+    // raycasting function made into a class to enable threading
+    private class Raycaster extends Thread {
         
         private final int posI;
         private final int posJ;
@@ -139,7 +140,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         int increment;
         short maxIntensity;
         
-        ColorSetter(int i, int j, double[] viewVec, double[] entryPoint, double[] exitPoint, float sampleStep, int increment, short maxIntensity) {
+        Raycaster(int i, int j, double[] viewVec, double[] entryPoint, double[] exitPoint, float sampleStep, int increment, short maxIntensity) {
             this.posI = i;
             this.posJ = j;
             this.viewVec = viewVec;
@@ -153,12 +154,12 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         @Override
         public void run() {
             
+            // determine raycasting method
             int pixelColor = 0;
-
             if(mipMode) pixelColor = traceRayMIP(entryPoint,exitPoint);
             else if(compositingMode || tf2dMode) pixelColor = traceRayCompositing(entryPoint,exitPoint);
 
-            // Check for out of bounds
+            // determine range to fill in skipped voxels from large increment
             int ix = posI + increment;
             int jx = posJ + increment;
             
@@ -167,7 +168,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 if (jx > image.getHeight()) jx = image.getHeight();
             }
             
-            // Set pixels
+            // set color for pixels in range
             for (int ii = posI; ii < ix; ii++) {
                 for (int jj = posJ; jj < jx; jj++) {
                     image.setRGB(ii, jj, pixelColor);
@@ -211,12 +212,12 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             // run compositing (front to back)
             for (int i=0; i<totalSteps; i++){
                 
-                // get coord values
+                // get voxel values
                 double[] coord = calcCoord(i, totalSteps);
                 VoxelGradient grad = interactiveMode ? gradients.getGradientNearest(coord) : gradients.getGradientInterpolate(coord);
                 short voxel = interactiveMode ? volume.getVoxelNearest(coord) : volume.getVoxelInterpolate(coord);
                 
-                // get voxel color
+                // get voxel color + apply shading
                 TFColor vColor = tf2dMode ? getTF2DColor(voxel, grad, coord) : tFunc.getColor(voxel);
                 if(shadingMode && !interactiveMode) vColor = calcShade(vColor, grad);
                 
@@ -230,7 +231,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 if(color.a > 0.99) break;
             }
             
-            // calculate rgb value
+            // calculate rgb value + make sure color in range
             int a = color.a < 1.0 ? (int) Math.floor(color.a * 255) : 255;
             int r = color.r < 1.0 ? (int) Math.floor(color.r * 255) : 255;
             int g = color.g < 1.0 ? (int) Math.floor(color.g * 255) : 255;
@@ -247,7 +248,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             double yDist = exitPoint[1] - entryPoint[1];
             double zDist = exitPoint[2] - entryPoint[2];
 
-            double rayLength = Math.sqrt(xDist*xDist + yDist*yDist + zDist*zDist);
+            double rayLength = Math.sqrt(xDist*xDist + yDist*yDist + zDist*zDist); //euclidean
             int totalSteps = (int) Math.floor(rayLength/sampleStep);
             
             return totalSteps;
