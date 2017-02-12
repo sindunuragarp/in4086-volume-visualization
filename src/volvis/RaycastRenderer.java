@@ -217,8 +217,8 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 short voxel = interactiveMode ? volume.getVoxelNearest(coord) : volume.getVoxelInterpolate(coord);
                 
                 // get voxel color
-                TFColor vColor = tf2dMode ? getTF2DColor(voxel, grad) : tFunc.getColor(voxel);
-                if(shadingMode) vColor = calcShade(vColor, grad);
+                TFColor vColor = tf2dMode ? getTF2DColor(voxel, grad, coord) : tFunc.getColor(voxel);
+                if(shadingMode && !interactiveMode) vColor = calcShade(vColor, grad);
                 
                 // accumulate color (compositing)
                 color.r += (1-color.a) * vColor.r * vColor.a;
@@ -266,13 +266,14 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         
         // ---------------------------------------------------------------------
         
-        private TFColor getTF2DColor(short intensity, VoxelGradient gradient) {
+        private TFColor getTF2DColor(short intensity, VoxelGradient gradient, double[] coord) {
             
             // transfer function values
             TransferFunction2DEditor.TriangleWidget widget = tfEditor2D.triangleWidget;
             TFColor color = widget.color;
             short baseIntensity = widget.baseIntensity;
             double radius = widget.radius;
+            double shear = widget.shear; // added parameter based on the paper by Kniss
             
             // get gradient based opacity
             double alpha = calcGradientBasedOpacity(intensity, baseIntensity, radius, gradient.mag);

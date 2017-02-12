@@ -89,7 +89,7 @@ public class TransferFunction2DEditor extends javax.swing.JPanel {
         intensityLabel.setText(Integer.toString(triangleWidget.baseIntensity));
         radiusLabel.setText(String.format("%.3f", triangleWidget.radius));
         opacityLabel.setText(String.format("%.1f", triangleWidget.color.a));
-        boundaryEmphasis.setText(String.format("%.3f", triangleWidget.emphasis));
+        shearLabel.setText(String.format("%.3f", triangleWidget.shear));
         colorButton.setBackground(new Color((float) triangleWidget.color.r, (float) triangleWidget.color.g, (float) triangleWidget.color.b));
     }
 
@@ -119,7 +119,7 @@ public class TransferFunction2DEditor extends javax.swing.JPanel {
         opacityLabel = new javax.swing.JTextField();
         intensityLabel = new javax.swing.JTextField();
         radiusLabel = new javax.swing.JTextField();
-        boundaryEmphasis = new javax.swing.JTextField();
+        shearLabel = new javax.swing.JTextField();
 
         javax.swing.GroupLayout plotPanelLayout = new javax.swing.GroupLayout(plotPanel);
         plotPanel.setLayout(plotPanelLayout);
@@ -158,7 +158,7 @@ public class TransferFunction2DEditor extends javax.swing.JPanel {
 
         jLabel7.setText("Radius");
 
-        jLabel8.setText("Boundary Emphasis");
+        jLabel8.setText("Shear");
 
         colorButton.setBounds(new java.awt.Rectangle(0, 0, 75, 29));
         colorButton.addActionListener(new java.awt.event.ActionListener() {
@@ -175,11 +175,11 @@ public class TransferFunction2DEditor extends javax.swing.JPanel {
             }
         });
 
-        boundaryEmphasis.setText("jTextField1");
-        boundaryEmphasis.setRequestFocusEnabled(true);
-        boundaryEmphasis.addActionListener(new java.awt.event.ActionListener() {
+        shearLabel.setText("jTextField1");
+        shearLabel.setRequestFocusEnabled(true);
+        shearLabel.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                boundaryEmphasisActionPerformed(evt);
+                shearLabelActionPerformed(evt);
             }
         });
 
@@ -232,7 +232,7 @@ public class TransferFunction2DEditor extends javax.swing.JPanel {
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                                     .addComponent(radiusLabel, javax.swing.GroupLayout.PREFERRED_SIZE, 84, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(boundaryEmphasis, javax.swing.GroupLayout.PREFERRED_SIZE, 84, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                    .addComponent(shearLabel, javax.swing.GroupLayout.PREFERRED_SIZE, 84, javax.swing.GroupLayout.PREFERRED_SIZE))
                                 .addGap(130, 130, 130))))
                     .addGroup(layout.createSequentialGroup()
                         .addComponent(plotPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -268,7 +268,7 @@ public class TransferFunction2DEditor extends javax.swing.JPanel {
                     .addComponent(jLabel5)
                     .addComponent(opacityLabel, javax.swing.GroupLayout.PREFERRED_SIZE, 28, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel8)
-                    .addComponent(boundaryEmphasis, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(shearLabel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGap(7, 7, 7)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(colorButton, javax.swing.GroupLayout.PREFERRED_SIZE, 29, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -306,35 +306,36 @@ public class TransferFunction2DEditor extends javax.swing.JPanel {
         changed();
     }//GEN-LAST:event_opacityLabelActionPerformed
 
-    private void boundaryEmphasisActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_boundaryEmphasisActionPerformed
+    private void shearLabelActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_shearLabelActionPerformed
         try {
-            double value = Double.parseDouble(boundaryEmphasis.getText());
-            if (value < 0) {
-                value = 0;
+            double value = Double.parseDouble(shearLabel.getText());
+            if (value < -1.0) {
+                value = -1.0;
             } 
             if (value > 1.0) {
                 value = 1.0;
             }
-            triangleWidget.emphasis = value;
+            triangleWidget.shear = value;
         } catch (NumberFormatException e) {
-            triangleWidget.emphasis = 0.0;
+            triangleWidget.shear = 0.0;
         }
         setSelectedInfo();
         changed();
-    }//GEN-LAST:event_boundaryEmphasisActionPerformed
+        tfView.repaint();
+    }//GEN-LAST:event_shearLabelActionPerformed
 
     public class TriangleWidget {
 
         public short baseIntensity;
         public double radius;
-        public double emphasis;
+        public double shear;
         public TFColor color;
 
         public TriangleWidget(short base, double r) {
             this.baseIntensity = base;
             this.radius = r;
             this.color = new TFColor(0.0, 204.0/255.0, 153.0/255.0, 0.3);
-            this.emphasis = 0.0;
+            this.shear = 0.0;
         }
     }
 
@@ -343,7 +344,7 @@ public class TransferFunction2DEditor extends javax.swing.JPanel {
     private javax.swing.JTextField intensityLabel;
     private javax.swing.JTextField opacityLabel;
     private javax.swing.JTextField radiusLabel;
-    private javax.swing.JTextField boundaryEmphasis;
+    private javax.swing.JTextField shearLabel;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;

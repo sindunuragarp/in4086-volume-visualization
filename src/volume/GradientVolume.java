@@ -202,13 +202,13 @@ public class GradientVolume {
                     // set gradient
                     setGradient(x, y, z, new VoxelGradient(dx, dy, dz), false);
                     
-                    // calculate second order central differences
-                    float d2x = (float) (x1+2*o-x0)/4;
-                    float d2y = (float) (y1+2*o-y0)/4;
-                    float d2z = (float) (z1+2*o-z0)/4;
+                    // calculate second order central differences (not used anymore)
+                    //float d2x = (float) (x1+2*o-x0)/4;
+                    //float d2y = (float) (y1+2*o-y0)/4;
+                    //float d2z = (float) (z1+2*o-z0)/4;
                     
                     // set second gradient
-                    setGradient(x, y, z, new VoxelGradient(d2x, d2y, d2z), true);
+                    //setGradient(x, y, z, new VoxelGradient(d2x, d2y, d2z), true);
                 }
             }
         }

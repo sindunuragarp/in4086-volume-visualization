@@ -5,11 +5,13 @@
  */
 package gui;
 
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
+import java.awt.Stroke;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
@@ -74,12 +76,29 @@ public class TransferFunction2DView extends javax.swing.JPanel {
         
         int ypos = h;
         int xpos = (int) (ed.triangleWidget.baseIntensity * binWidth);
-        g2.setColor(Color.black);
+        int xrange = (int) (ed.triangleWidget.radius * binWidth * ed.maxGradientMagnitude);
+        int shear = (int) (ed.triangleWidget.shear * xrange);
+        
         baseControlPoint = new Ellipse2D.Double(xpos - DOTSIZE / 2, ypos - DOTSIZE, DOTSIZE, DOTSIZE);
+        radiusControlPoint = new Ellipse2D.Double(xpos + xrange - DOTSIZE / 2,  0, DOTSIZE, DOTSIZE);
+
+        // draw dashed line when shear is not zero
+        if(ed.triangleWidget.shear != 0){
+            Graphics2D g2c = (Graphics2D) g2.create();
+            Stroke dashed = new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{9}, 0);
+            
+            g2c.setStroke(dashed);
+            g2c.setColor(Color.LIGHT_GRAY);
+            g2c.drawLine(xpos, ypos, xpos - xrange, 0);
+            g2c.drawLine(xpos, ypos, xpos + xrange, 0);
+            
+            g2c.dispose();
+        }
+        
+        g2.setColor(Color.BLACK);
+        g2.drawLine(xpos, ypos, xpos - xrange + shear, 0);
+        g2.drawLine(xpos, ypos, xpos + xrange + shear, 0);
         g2.fill(baseControlPoint);
-        g2.drawLine(xpos, ypos, xpos - (int) (ed.triangleWidget.radius * binWidth * ed.maxGradientMagnitude), 0);
-        g2.drawLine(xpos, ypos, xpos + (int) (ed.triangleWidget.radius * binWidth * ed.maxGradientMagnitude), 0);
-        radiusControlPoint = new Ellipse2D.Double(xpos + (ed.triangleWidget.radius * binWidth * ed.maxGradientMagnitude) - DOTSIZE / 2,  0, DOTSIZE, DOTSIZE);
         g2.fill(radiusControlPoint);
     }
     
