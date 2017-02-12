@@ -124,7 +124,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
     private double diffuse = 0.7;
     private double ambient = 0.1;
     private double alpha = 10;
-    private double[] light = {1.0, 0.0, 0.0};
+    private double[] lightVec = {1.0, 0.0, 0.0};
             
     private class ColorSetter extends Thread {
         
@@ -307,56 +307,60 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             normGrad[2] = -grad.z / grad.mag;
             
             // calculate the light vector
-            double[] lightVector = new double[3];
-            lightVector[0] = normGrad[0] - light[0];
-            lightVector[1] = normGrad[1] - light[1];
-            lightVector[2] = normGrad[2] - light[2];
+            double[] light = new double[3];
+            light[0] = normGrad[0] - lightVec[0];
+            light[1] = normGrad[1] - lightVec[1];
+            light[2] = normGrad[2] - lightVec[2];
             
             // calculate normalized light vector
-            double[] normLightVector = new double[3];
-            double lightVectorMag = Math.sqrt(lightVector[0] * lightVector[0] + lightVector[1] * lightVector[1] + lightVector[2] * lightVector[2]);
-            normLightVector[0] = lightVector[0] / lightVectorMag;
-            normLightVector[1] = lightVector[1] / lightVectorMag;
-            normLightVector[2] = lightVector[2] / lightVectorMag;
-            
-            // calculate the cosine theta
-            double cosTheta = normGrad[0] * normLightVector[0] + normGrad[1] * normLightVector[1] + normGrad[2] * normLightVector[2];
-            cosTheta = cosTheta > 0 ? cosTheta : 0;
+            double[] normLightVec = new double[3];
+            double lightMag = calcVectorMagnitude(light);
+            normLightVec[0] = light[0] / lightMag;
+            normLightVec[1] = light[1] / lightMag;
+            normLightVec[2] = light[2] / lightMag;
             
             // calculate the view vector
-            double[] viewVector = new double[3];
-            viewVector[0] = normGrad[0] - viewVec[0];
-            viewVector[1] = normGrad[1] - viewVec[1];
-            viewVector[2] = normGrad[2] - viewVec[2];
+            double[] view = new double[3];
+            view[0] = normGrad[0] - viewVec[0];
+            view[1] = normGrad[1] - viewVec[1];
+            view[2] = normGrad[2] - viewVec[2];
             
             // calculate normalized view vector
-            double[] normViewVector = new double[3];
-            double viewVectorMag = Math.sqrt(viewVector[0] * viewVector[0] + viewVector[1] * viewVector[1] + viewVector[2] * viewVector[2]);
-            normViewVector[0] = viewVector[0] / viewVectorMag;
-            normViewVector[1] = viewVector[1] / viewVectorMag;
-            normViewVector[2] = viewVector[2] / viewVectorMag;
+            double[] normViewVec = new double[3];
+            double viewMag = calcVectorMagnitude(view);
+            normViewVec[0] = view[0] / viewMag;
+            normViewVec[1] = view[1] / viewMag;
+            normViewVec[2] = view[2] / viewMag;
             
-            // calculate the vector in direction of maximum highlight
-            double[] highlightVector = new double[3];
-            highlightVector[0] = normViewVector[0] + normLightVector[0];
-            highlightVector[1] = normViewVector[1] + normLightVector[1];
-            highlightVector[2] = normViewVector[2] + normLightVector[2];
+            // calculate the vector in direction of maximum highlight (reflection)
+            double[] refl = new double[3];
+            refl[0] = normViewVec[0] + normLightVec[0];
+            refl[1] = normViewVec[1] + normLightVec[1];
+            refl[2] = normViewVec[2] + normLightVec[2];
             
             // calculate normalized vector in direction of maximum highlight
-            double[] normHighlightVector = new double[3];
-            double highlightVectorMag = Math.sqrt(highlightVector[0] * highlightVector[0] + highlightVector[1] * highlightVector[1] + highlightVector[2] * highlightVector[2]);
-            normHighlightVector[0] = highlightVector[0] / highlightVectorMag;
-            normHighlightVector[1] = highlightVector[1] / highlightVectorMag;
-            normHighlightVector[2] = highlightVector[2] / highlightVectorMag;
+            double[] normReflVec = new double[3];
+            double reflVecMag = calcVectorMagnitude(refl);
+            normReflVec[0] = refl[0] / reflVecMag;
+            normReflVec[1] = refl[1] / reflVecMag;
+            normReflVec[2] = refl[2] / reflVecMag;
             
-            // calculate the cosine 
-            double cosVarphi = Math.pow(normGrad[0] * normHighlightVector[0] + normGrad[1] * normHighlightVector[1] + normGrad[2] * normHighlightVector[2], alpha);
+            // calculate the cosine theta
+            double cosTheta = normGrad[0]*normLightVec[0] + normGrad[1]*normLightVec[1] + normGrad[2]*normLightVec[2];
+            cosTheta = cosTheta > 0 ? cosTheta : 0;
+            
+            // calculate the cosine varphi
+            double cosVarphi = Math.pow(normGrad[0]*normReflVec[0] + normGrad[1]*normReflVec[1] + normGrad[2]*normReflVec[2], alpha);
             cosVarphi = cosVarphi > 0 ? cosVarphi : 0;
             
             // calculate the shade
-            double contrast = ambient + diffuse * cosTheta + specular * cosVarphi;
+            double contrast = ambient + diffuse*cosTheta + specular*cosVarphi;
             return new TFColor(color.r*contrast, color.g*contrast, color.b*contrast, color.a);
         }
+    }
+    
+    double calcVectorMagnitude(double[] vector) {
+        return Math.sqrt(vector[0]*vector[0] + vector[1]*vector[1] + vector[2]*vector[2]);
     }
     
     // -------------------------------------------------------------------------
