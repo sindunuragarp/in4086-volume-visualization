@@ -307,44 +307,32 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             normGrad[1] = -grad.y / grad.mag;
             normGrad[2] = -grad.z / grad.mag;
             
-            // calculate the light vector
-            double[] light = new double[3];
-            light[0] = normGrad[0] - lightVec[0];
-            light[1] = normGrad[1] - lightVec[1];
-            light[2] = normGrad[2] - lightVec[2];
-            
             // calculate normalized light vector
             double[] normLightVec = new double[3];
-            double lightMag = calcVectorMagnitude(light);
-            normLightVec[0] = light[0] / lightMag;
-            normLightVec[1] = light[1] / lightMag;
-            normLightVec[2] = light[2] / lightMag;
-            
-            // calculate the view vector
-            double[] view = new double[3];
-            view[0] = normGrad[0] - viewVec[0];
-            view[1] = normGrad[1] - viewVec[1];
-            view[2] = normGrad[2] - viewVec[2];
+            double lightMag = calcVectorMagnitude(lightVec);
+            normLightVec[0] = lightVec[0] / lightMag;
+            normLightVec[1] = lightVec[1] / lightMag;
+            normLightVec[2] = lightVec[2] / lightMag;
             
             // calculate normalized view vector
             double[] normViewVec = new double[3];
-            double viewMag = calcVectorMagnitude(view);
-            normViewVec[0] = view[0] / viewMag;
-            normViewVec[1] = view[1] / viewMag;
-            normViewVec[2] = view[2] / viewMag;
+            double viewMag = calcVectorMagnitude(viewVec);
+            normViewVec[0] = viewVec[0] / viewMag;
+            normViewVec[1] = viewVec[1] / viewMag;
+            normViewVec[2] = viewVec[2] / viewMag;
             
-            // calculate the vector in direction of maximum highlight (reflection)
-            double[] refl = new double[3];
-            refl[0] = normViewVec[0] + normLightVec[0];
-            refl[1] = normViewVec[1] + normLightVec[1];
-            refl[2] = normViewVec[2] + normLightVec[2];
+            // calculate the halfway vector
+            double[] halfwayVec = new double[3];
+            halfwayVec[0] = normViewVec[0] + normLightVec[0];
+            halfwayVec[1] = normViewVec[1] + normLightVec[1];
+            halfwayVec[2] = normViewVec[2] + normLightVec[2];
             
-            // calculate normalized vector in direction of maximum highlight
+            // calculate normalized halfway vector
             double[] normReflVec = new double[3];
-            double reflVecMag = calcVectorMagnitude(refl);
-            normReflVec[0] = refl[0] / reflVecMag;
-            normReflVec[1] = refl[1] / reflVecMag;
-            normReflVec[2] = refl[2] / reflVecMag;
+            double halfwayVecMag = calcVectorMagnitude(halfwayVec);
+            normReflVec[0] = halfwayVec[0] / halfwayVecMag;
+            normReflVec[1] = halfwayVec[1] / halfwayVecMag;
+            normReflVec[2] = halfwayVec[2] / halfwayVecMag;
             
             // calculate the cosine theta
             double cosTheta = normGrad[0]*normLightVec[0] + normGrad[1]*normLightVec[1] + normGrad[2]*normLightVec[2];
